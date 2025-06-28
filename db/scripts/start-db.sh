@@ -52,25 +52,27 @@ print_header "Starting FAM Database"
 
 print_info "Starting PostgreSQL database..."
 
-# Try docker-compose first, then docker compose
-if command -v docker-compose &> /dev/null; then
-    docker-compose up -d postgres
-elif docker compose version &> /dev/null; then
+# Try docker compose first (newer), then fallback to docker-compose
+if docker compose version &> /dev/null; then
     docker compose up -d postgres
+elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
+    docker-compose up -d postgres
 else
-    print_error "Neither docker-compose nor docker compose is available"
+    print_error "Neither docker compose nor docker-compose is available"
     exit 1
 fi
 
 print_info "Waiting for database to be ready..."
 local retries=30
 while [ $retries -gt 0 ]; do
-    if command -v docker-compose &> /dev/null; then
+    if docker compose version &> /dev/null; then
+        if docker compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
+            break
+        fi
+    elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
         if docker-compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
             break
         fi
-    elif docker compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
-        break
     fi
     
     retries=$((retries - 1))

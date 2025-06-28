@@ -199,22 +199,7 @@ check_database() {
     fi
     
     # Test database connection
-    if command -v docker-compose &> /dev/null; then
-        if docker-compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
-            print_success "Database: Connection successful"
-            
-            # Get database info
-            local db_version=$(docker-compose exec -T postgres psql -U fam_user -d fam_db -t -c "SELECT version();" | head -n1 | xargs)
-            print_info "Database version: $db_version"
-            
-            # Check tables
-            local table_count=$(docker-compose exec -T postgres psql -U fam_user -d fam_db -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" | xargs)
-            print_info "Tables in database: $table_count"
-        else
-            print_error "Database: Connection failed"
-            return 1
-        fi
-    elif docker compose version &> /dev/null; then
+    if docker compose version &> /dev/null; then
         if docker compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
             print_success "Database: Connection successful"
             
@@ -224,6 +209,21 @@ check_database() {
             
             # Check tables
             local table_count=$(docker compose exec -T postgres psql -U fam_user -d fam_db -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" | xargs)
+            print_info "Tables in database: $table_count"
+        else
+            print_error "Database: Connection failed"
+            return 1
+        fi
+    elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
+        if docker-compose exec -T postgres pg_isready -U fam_user -d fam_db &> /dev/null; then
+            print_success "Database: Connection successful"
+            
+            # Get database info
+            local db_version=$(docker-compose exec -T postgres psql -U fam_user -d fam_db -t -c "SELECT version();" | head -n1 | xargs)
+            print_info "Database version: $db_version"
+            
+            # Check tables
+            local table_count=$(docker-compose exec -T postgres psql -U fam_user -d fam_db -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" | xargs)
             print_info "Tables in database: $table_count"
         else
             print_error "Database: Connection failed"

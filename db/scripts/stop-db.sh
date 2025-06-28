@@ -45,13 +45,13 @@ print_header "Stopping FAM Database"
 
 print_info "Stopping PostgreSQL database..."
 
-# Try docker-compose first, then docker compose
-if command -v docker-compose &> /dev/null; then
-    docker-compose stop postgres
-elif docker compose version &> /dev/null; then
+# Try docker compose first (newer), then fallback to docker-compose
+if docker compose version &> /dev/null; then
     docker compose stop postgres
+elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
+    docker-compose stop postgres
 else
-    print_error "Neither docker-compose nor docker compose is available"
+    print_error "Neither docker compose nor docker-compose is available"
     exit 1
 fi
 

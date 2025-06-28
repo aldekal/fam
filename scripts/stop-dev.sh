@@ -50,13 +50,13 @@ stop_services() {
     
     print_info "Stopping all services..."
     
-    # Try docker-compose first, then docker compose
-    if command -v docker-compose &> /dev/null; then
-        docker-compose down
-    elif docker compose version &> /dev/null; then
+    # Try docker compose first (newer), then fallback to docker-compose
+    if docker compose version &> /dev/null; then
         docker compose down
+    elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
+        docker-compose down
     else
-        print_error "Neither docker-compose nor docker compose is available"
+        print_error "Neither docker compose nor docker-compose is available"
         exit 1
     fi
     
@@ -83,10 +83,10 @@ remove_volumes() {
     print_warning "This will remove all data volumes. Are you sure? (y/N)"
     read -r response
     if [[ "$response" =~ ^[Yy]$ ]]; then
-        if command -v docker-compose &> /dev/null; then
-            docker-compose down -v
-        else
+        if docker compose version &> /dev/null; then
             docker compose down -v
+        elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null 2>&1; then
+            docker-compose down -v
         fi
         print_warning "Data volumes removed"
     else
